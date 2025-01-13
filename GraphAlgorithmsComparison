@@ -1,0 +1,169 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+namespace GraphMST
+{
+ class Program
+ {
+ static void Main(string[] args)
+ {
+ // Load the graph from the provided text file
+ Graph graph = new Graph();
+ graph.LoadGraphFromFile("graph.txt");
+ List<double> runtimes = new List<double>();
+ // Run Kruskal's algorithm 10 times to measure execution time
+ for (int i = 0; i < 10; i++)
+ {
+ double runtime = MeasureExecutionTime(() => graph.KruskalMST());
+ runtimes.Add(runtime);
+ }
+ // Output the recorded runtimes
+ Console.WriteLine("Recorded Execution Times (ms):");
+ foreach (double time in runtimes)
+ {
+
+ Console.WriteLine(time);
+ }
+ }
+ // Method to measure the execution time of a given action
+ private static double MeasureExecutionTime(Action action)
+ {
+ DateTime startTime = DateTime.Now;
+ action.Invoke();
+ TimeSpan elapsedTime = DateTime.Now - startTime;
+ return elapsedTime.TotalMilliseconds;
+ }
+ }
+ // Class to represent an edge in the graph
+ public class Edge
+ {
+ public int StartNode { get; }
+ public int EndNode { get; }
+ public int Weight { get; }
+ public Edge(int startNode, int endNode, int weight)
+ {
+ StartNode = startNode;
+ EndNode = endNode;
+ Weight = weight;
+ }
+ }
+
+ // Class to represent the graph
+ public class Graph
+ {
+ private List<Edge> edges;
+ private int numberOfNodes;
+ public Graph()
+ {
+ edges = new List<Edge>();
+ }
+ // Load graph data from a file
+ public void LoadGraphFromFile(string filePath)
+ {
+ try
+ {
+ using (StreamReader reader = new StreamReader(filePath))
+ {
+ numberOfNodes = int.Parse(reader.ReadLine()); // Read the number of
+nodes
+ reader.ReadLine(); // Read the second line (ignored in this case)
+ string line;
+ while ((line = reader.ReadLine()) != null)
+ {
+ string[] parts = line.Split(' ');
+ if (parts.Length == 3)
+ {
+
+ int startNode = int.Parse(parts[0]);
+ int endNode = int.Parse(parts[1]);
+ int weight = int.Parse(parts[2]);
+ AddEdge(startNode, endNode, weight);
+ }
+ }
+ }
+ }
+ catch (FileNotFoundException ex)
+ {
+ Console.WriteLine($"Error: File not found - {ex.Message}");
+ }
+ catch (FormatException ex)
+ {
+ Console.WriteLine($"Error: Data format issue - {ex.Message}");
+ }
+ catch (Exception ex)
+ {
+ Console.WriteLine($"Error loading graph from file: {ex.Message}");
+ }
+ }
+ // Add an edge to the graph
+ public void AddEdge(int startNode, int endNode, int weight)
+ {
+ edges.Add(new Edge(startNode, endNode, weight));
+ }
+
+ // Kruskal's algorithm to find the Minimum Spanning Tree (MST)
+ public List<Edge> KruskalMST()
+ {
+ List<Edge> minimumSpanningTree = new List<Edge>();
+ // Sort edges by weight
+ List<Edge> sortedEdges = edges.OrderBy(e => e.Weight).ToList();
+ // Create a union-find structure to track connected components
+ DisjointSet disjointSet = new DisjointSet(numberOfNodes);
+ foreach (Edge edge in sortedEdges)
+ {
+ // Check if the current edge forms a cycle
+ if (disjointSet.Find(edge.StartNode) != disjointSet.Find(edge.EndNode))
+ {
+ // If not, add the edge to the MST
+ minimumSpanningTree.Add(edge);
+ disjointSet.Union(edge.StartNode, edge.EndNode);
+ }
+ }
+ // Output the Minimum Spanning Tree edges
+ Console.WriteLine("Minimum Spanning Tree (MST) edges:");
+ foreach (Edge edge in minimumSpanningTree)
+ {
+ Console.WriteLine($"Edge: {edge.StartNode} - {edge.EndNode}, Weight:
+{edge.Weight}");
+ }
+
+ Console.WriteLine($"Total Weight of MST: {minimumSpanningTree.Sum(e =>
+e.Weight)}");
+ return minimumSpanningTree;
+ }
+ }
+ // Class for Disjoint Set Union (Union-Find) structure
+ public class DisjointSet
+ {
+ private int[] parent;
+ public DisjointSet(int size)
+ {
+ parent = new int[size + 1];
+ for (int i = 0; i <= size; i++)
+ {
+ parent[i] = i; // Each node is its own parent initially
+ }
+ }
+ // Find the root of the node with path compression
+ public int Find(int node)
+ {
+ if (parent[node] != node)
+ {
+ parent[node] = Find(parent[node]); // Path compression
+ }
+ return parent[node];
+
+ }
+ // Union operation to connect two nodes
+ public void Union(int node1, int node2)
+ {
+ int root1 = Find(node1);
+ int root2 = Find(node2);
+ if (root1 != root2)
+ {
+ parent[root2] = root1; // Connect the roots
+ }
+ }
+ }
+}
